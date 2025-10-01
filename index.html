@@ -122,6 +122,127 @@
             background: white;
         }
         
+        .notes-section {
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+        
+        .notes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .notes-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text);
+        }
+        
+        .note-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
+            position: relative;
+        }
+        
+        .note-card.high {
+            border-left-color: var(--danger);
+        }
+        
+        .note-card.medium {
+            border-left-color: var(--warning);
+        }
+        
+        .note-card.low {
+            border-left-color: var(--success);
+        }
+        
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .note-title-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            flex: 1;
+        }
+        
+        .note-importance {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .note-importance.high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .note-importance.medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .note-importance.low {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .note-content {
+            color: var(--text-light);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .note-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-light);
+        }
+        
+        .note-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .note-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .note-btn.edit {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .note-btn.delete {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .note-btn:active {
+            transform: scale(0.95);
+        }
+        
         .page {
             display: none;
         }
@@ -628,6 +749,7 @@
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="switchPage('dashboard')">📊 Dashboard</button>
             <button class="nav-tab" onclick="switchPage('sheet')">📋 Sheet</button>
+            <button class="nav-tab" onclick="switchPage('notes')">📝 Notes</button>
         </div>
     </div>
     
@@ -738,6 +860,51 @@
         </div>
     </div>
     
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="noteModalTitle">Add Note</div>
+                <button class="close-btn" onclick="closeModal('noteModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Note Title</label>
+                    <input type="text" id="noteTitle" placeholder="Enter note title">
+                </div>
+                <div class="form-group">
+                    <label>Note Content</label>
+                    <textarea id="noteContent" placeholder="Enter note details..." style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; min-height: 100px; resize: vertical;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Importance</label>
+                    <select id="noteImportance">
+                        <option value="high">High</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Category (Optional)</label>
+                    <input type="text" id="noteCategory" placeholder="e.g., Investment Strategy, Reminder">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="action-btn btn-primary" onclick="saveNote()">Save Note</button>
+                <button class="action-btn" style="background: #e5e7eb; color: #374151;" onclick="closeModal('noteModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="notes" class="page">
+        <div class="notes-section">
+            <div class="notes-header">
+                <div class="notes-title">📝 Investment Notes</div>
+                <button class="action-btn btn-primary" onclick="addNote()">➕ Add Note</button>
+            </div>
+            <div id="notesList"></div>
+        </div>
+    </div>
+    
     <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCSVImport(event)">
     
     <div id="tooltip" class="tooltip"></div>
@@ -746,16 +913,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script>
-        const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzRIydaPg5AyX14BmW9EGaGOHjGYtTlhMSOB-reWnGetKNjtfXEckGI5wqYSTEcu_ECNw/exec';
-        
+        const SHEET_URL = 'https://script.google.com/macros/s/AKfycbw2-YbGZEBjfCJ0o2hi78y6u1y_5sRI1Kv4Ru4U3uKteSAZ7CLhuhuAzf4E3p0xa3mv/exec';
+         
         let appData = {
             rows: [],
             platforms: [],
             lastUpdate: null,
             pendingChanges: [],
             platformTotals: {},
-            totalValue: 0
+            totalValue: 0,
+            notes: []
         };
+        
+        let currentEditingNote = null;
         
         let charts = {
             platform: null,
@@ -797,9 +967,11 @@
                 appData.pendingChanges = pendingChanges;
                 appData.platformTotals = appData.platformTotals || {};
                 appData.totalValue = appData.totalValue || 0;
+                appData.notes = appData.notes || [];
                 
                 renderDashboard();
                 renderSheet();
+                renderNotes();
                 showNotification('Data synced successfully!', 'success');
                 
                 document.getElementById('lastSync').textContent = appData.lastUpdate;
@@ -1089,27 +1261,49 @@
                 ? row.accountType 
                 : row.values[valIdx];
             
+            // Store original value for comparison
+            const originalValue = currentValue;
+            
             td.classList.add('editing');
             td.innerHTML = `<input type="${type === 'accountType' ? 'text' : 'number'}" 
                                    class="cell-input" 
                                    value="${currentValue}" 
-                                   id="editInput">`;
+                                   id="editInput"
+                                   data-original="${originalValue}">`;
             
             const input = document.getElementById('editInput');
             input.focus();
             input.select();
             
-            input.onblur = () => saveCell(rowIdx, valIdx, type, input.value, td);
+            input.onblur = () => {
+                const newValue = input.value;
+                const original = input.getAttribute('data-original');
+                
+                // Only save if value actually changed
+                if (newValue !== original) {
+                    saveCellAuto(rowIdx, valIdx, type, newValue, td);
+                } else {
+                    renderSheet();
+                }
+            };
+            
             input.onkeydown = (e) => {
                 if (e.key === 'Enter') {
-                    saveCell(rowIdx, valIdx, type, input.value, td);
+                    const newValue = input.value;
+                    const original = input.getAttribute('data-original');
+                    
+                    if (newValue !== original) {
+                        saveCellAuto(rowIdx, valIdx, type, newValue, td);
+                    } else {
+                        renderSheet();
+                    }
                 } else if (e.key === 'Escape') {
                     renderSheet();
                 }
             };
         }
         
-        function saveCell(rowIdx, valIdx, type, newValue, td) {
+        async function saveCellAuto(rowIdx, valIdx, type, newValue, td) {
             const row = appData.rows[rowIdx];
             
             if (type === 'accountType') {
@@ -1120,22 +1314,32 @@
             
             row.lastUpdated = new Date().toISOString();
             
-            // Ensure pendingChanges exists
-            if (!appData.pendingChanges) {
-                appData.pendingChanges = [];
+            // Auto-save to Google Sheets immediately
+            try {
+                showNotification('Saving changes...', 'success');
+                
+                const response = await fetch(SHEET_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'updateCells',
+                        data: appData.rows
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderSheet();
+                    renderDashboard();
+                    showNotification('Changes saved automatically!', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+                
+            } catch (error) {
+                showNotification('Auto-save failed: ' + error.message, 'error');
+                renderSheet();
             }
-            
-            appData.pendingChanges.push({
-                rowIdx,
-                valIdx,
-                type,
-                value: newValue,
-                timestamp: row.lastUpdated
-            });
-            
-            renderSheet();
-            renderDashboard();
-            showNotification('Cell updated. Click "Save All" to sync to Google Sheets.', 'success');
         }
         
         async function saveChanges() {
@@ -1341,6 +1545,157 @@
             setTimeout(() => {
                 notification.classList.remove('show');
             }, 4000);
+        }
+        
+        function renderNotes() {
+            const notesList = document.getElementById('notesList');
+            
+            if (!appData.notes || appData.notes.length === 0) {
+                notesList.innerHTML = `
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-light);">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+                        <p style="font-size: 18px; margin-bottom: 8px;">No notes yet</p>
+                        <p style="font-size: 14px;">Click "Add Note" to create your first investment note</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort by importance: high > medium > low
+            const importanceOrder = { high: 1, medium: 2, low: 3 };
+            const sortedNotes = [...appData.notes].sort((a, b) => {
+                return importanceOrder[a.importance] - importanceOrder[b.importance];
+            });
+            
+            notesList.innerHTML = sortedNotes.map((note, idx) => `
+                <div class="note-card ${note.importance}">
+                    <div class="note-header">
+                        <div class="note-title-text">${note.title}</div>
+                        <div class="note-importance ${note.importance}">${note.importance}</div>
+                    </div>
+                    <div class="note-content">${note.content}</div>
+                    ${note.category ? `<div style="font-size: 12px; color: var(--text-light); margin-bottom: 8px;">📁 ${note.category}</div>` : ''}
+                    <div class="note-footer">
+                        <div>${formatTimestamp(note.createdAt)}</div>
+                        <div class="note-actions">
+                            <button class="note-btn edit" onclick="editNote(${idx})">Edit</button>
+                            <button class="note-btn delete" onclick="deleteNote(${idx})">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function addNote() {
+            currentEditingNote = null;
+            document.getElementById('noteModalTitle').textContent = 'Add Note';
+            document.getElementById('noteTitle').value = '';
+            document.getElementById('noteContent').value = '';
+            document.getElementById('noteImportance').value = 'medium';
+            document.getElementById('noteCategory').value = '';
+            document.getElementById('noteModal').classList.add('show');
+        }
+        
+        function editNote(idx) {
+            currentEditingNote = idx;
+            const note = appData.notes[idx];
+            
+            document.getElementById('noteModalTitle').textContent = 'Edit Note';
+            document.getElementById('noteTitle').value = note.title;
+            document.getElementById('noteContent').value = note.content;
+            document.getElementById('noteImportance').value = note.importance;
+            document.getElementById('noteCategory').value = note.category || '';
+            document.getElementById('noteModal').classList.add('show');
+        }
+        
+        async function saveNote() {
+            const title = document.getElementById('noteTitle').value.trim();
+            const content = document.getElementById('noteContent').value.trim();
+            const importance = document.getElementById('noteImportance').value;
+            const category = document.getElementById('noteCategory').value.trim();
+            
+            if (!title || !content) {
+                showNotification('Please fill in title and content', 'error');
+                return;
+            }
+            
+            const note = {
+                title,
+                content,
+                importance,
+                category,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            if (!appData.notes) {
+                appData.notes = [];
+            }
+            
+            if (currentEditingNote !== null) {
+                // Update existing note
+                appData.notes[currentEditingNote] = {
+                    ...appData.notes[currentEditingNote],
+                    ...note,
+                    createdAt: appData.notes[currentEditingNote].createdAt // Preserve original creation date
+                };
+            } else {
+                // Add new note
+                appData.notes.push(note);
+            }
+            
+            // Save to Google Sheets
+            try {
+                const response = await fetch(SHEET_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'updateNotes',
+                        notes: appData.notes
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderNotes();
+                    closeModal('noteModal');
+                    showNotification('Note saved successfully!', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showNotification('Failed to save note: ' + error.message, 'error');
+            }
+        }
+        
+        async function deleteNote(idx) {
+            if (!confirm('Are you sure you want to delete this note?')) {
+                return;
+            }
+            
+            appData.notes.splice(idx, 1);
+            
+            // Save to Google Sheets
+            try {
+                const response = await fetch(SHEET_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'updateNotes',
+                        notes: appData.notes
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderNotes();
+                    showNotification('Note deleted successfully!', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showNotification('Failed to delete note: ' + error.message, 'error');
+            }
         }
     </script>
 </body>
