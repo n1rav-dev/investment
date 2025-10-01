@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investment Portfolio Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --bg: #f9fafb;
+            --card-bg: #ffffff;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        
+        .nav-container {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .nav-header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        
+        .nav-title {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sync-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s;
+        }
+        
+        .sync-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .nav-tabs {
+            display: flex;
+            background: rgba(0,0,0,0.1);
+        }
+        
+        .nav-tab {
+            flex: 1;
+            padding: 12px 20px;
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .nav-tab.active {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: white;
+        }
+        
+        .page {
+            display: none;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        .dashboard {
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+        
+        .status-bar {
+            background: var(--card-bg);
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            font-size: 13px;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-light);
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+        
+        .metric-card:nth-child(2) {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .metric-card:nth-child(3) {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .metric-card:nth-child(4) {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            position: relative;
+        }
+        
+        .metric-subtext {
+            font-size: 12px;
+            opacity: 0.85;
+            position: relative;
+        }
+        
+        .chart-section {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+        }
+        
+        .chart-toggle {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .toggle-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .toggle-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        canvas {
+            max-height: 250px !important;
+        }
+        
+        .sheet-container {
+            padding: 15px;
+            padding-bottom: 80px;
+        }
+        
+        .sheet-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .action-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+        
+        th {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            white-space: nowrap;
+        }
+        
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            position: relative;
+        }
+        
+        td.editable {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        td.editable:hover {
+            background: #f0f9ff;
+        }
+        
+        td.editing {
+            padding: 0;
+        }
+        
+        td.recent-update {
+            background: #fef3c7;
+        }
+        
+        .cell-input {
+            width: 100%;
+            padding: 12px 10px;
+            border: 2px solid var(--primary);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+        }
+        
+        .timestamp-indicator {
+            font-size: 10px;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+        
+        .total-row {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            font-weight: 700;
+        }
+        
+        .total-row td {
+            color: var(--primary-dark);
+            font-size: 14px;
+        }
+        
+        .tooltip {
+            position: fixed;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            max-width: 250px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .tooltip.show {
+            opacity: 1;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            padding: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-light);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        
+        .close-btn:hover {
+            background: var(--bg);
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .modal-actions button {
+            flex: 1;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 150;
+        }
+        
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .notification-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .notification.success .notification-icon {
+            background: var(--success);
+            color: white;
+        }
+        
+        .notification.error .notification-icon {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .notification-text {
+            flex: 1;
+            font-size: 14px;
+            color: var(--text);
+        }
+        
+        @media (min-width: 768px) {
+            .nav-title {
+                font-size: 20px;
+            }
+            
+            .dashboard {
+                padding: 30px;
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 20px;
+            }
+            
+            .metric-value {
+                font-size: 28px;
+            }
+            
+            canvas {
+                max-height: 350px !important;
+            }
+            
+            .sheet-container {
+                padding: 30px;
+                max-width: 1400px;
+                margin: 0 auto;
+            }
+            
+            th {
+                font-size: 13px;
+                padding: 15px;
+            }
+            
+            td {
+                padding: 15px;
+                font-size: 14px;
+            }
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-container">
+        <div class="nav-header">
+            <div class="nav-title">💼 Portfolio Tracker</div>
+            <button class="sync-btn" onclick="syncData()">
+                <span class="sync-icon">🔄</span>
+                <span>Sync</span>
+            </button>
+        </div>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchPage('dashboard')">📊 Dashboard</button>
+            <button class="nav-tab" onclick="switchPage('sheet')">📋 Sheet</button>
+        </div>
+    </div>
+    
+    <div id="dashboard" class="page active">
+        <div class="dashboard">
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>Connected</span>
+                </div>
+                <div id="lastSync">Never</div>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Total Value</div>
+                    <div class="metric-value" id="totalValue">$0</div>
+                    <div class="metric-subtext" id="platformCount">0 platforms</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Largest Platform</div>
+                    <div class="metric-value" id="largestPlatform">-</div>
+                    <div class="metric-subtext" id="largestAmount">$0</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Tax-Advantaged</div>
+                    <div class="metric-value" id="taxAdvantaged">$0</div>
+                    <div class="metric-subtext" id="taxPercentage">0%</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Liquid Assets</div>
+                    <div class="metric-value" id="liquidAssets">$0</div>
+                    <div class="metric-subtext" id="liquidPercentage">0%</div>
+                </div>
+            </div>
+            
+            <div class="chart-section">
+                <div class="chart-header">
+                    <div class="chart-title">Platform Distribution</div>
+                    <div class="chart-toggle">
+                        <button class="toggle-btn active" onclick="switchChart('pie')">Pie</button>
+                        <button class="toggle-btn" onclick="switchChart('bar')">Bar</button>
+                    </div>
+                </div>
+                <canvas id="chartCanvas"></canvas>
+            </div>
+            
+            <div class="chart-section">
+                <div class="chart-title">Account Type Breakdown</div>
+                <canvas id="accountChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div id="sheet" class="page">
+        <div class="sheet-container">
+            <div class="sheet-actions">
+                <button class="action-btn btn-primary" onclick="addRow()">➕ Add Row</button>
+                <button class="action-btn btn-success" onclick="saveChanges()">💾 Save All</button>
+                <button class="action-btn btn-warning" onclick="exportCSV()">📥 Export CSV</button>
+                <button class="action-btn btn-danger" onclick="importCSV()">📤 Import CSV</button>
+            </div>
+            
+            <div class="table-wrapper">
+                <table id="dataTable">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div id="addRowModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Add New Account</div>
+                <button class="close-btn" onclick="closeModal('addRowModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Account Type</label>
+                    <input type="text" id="newAccountType" placeholder="e.g., CRYPTO, USD">
+                </div>
+                <div class="form-group">
+                    <label>Wealthsimple</label>
+                    <input type="number" id="newWealthsimple" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Questrade</label>
+                    <input type="number" id="newQuestrade" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Webull</label>
+                    <input type="number" id="newWebull" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Moomoo</label>
+                    <input type="number" id="newMoomoo" value="0">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="action-btn btn-primary" onclick="confirmAddRow()">Add Account</button>
+                <button class="action-btn" style="background: #e5e7eb; color: #374151;" onclick="closeModal('addRowModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCSVImport(event)">
+    
+    <div id="tooltip" class="tooltip"></div>
+    <div id="notification" class="notification"></div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script>
+        const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzRIydaPg5AyX14BmW9EGaGOHjGYtTlhMSOB-reWnGetKNjtfXEckGI5wqYSTEcu_ECNw/exec';
+        
+        let appData = {
+            rows: [],
+            platforms: [],
+            lastUpdate: null,
+            pendingChanges: [],
+            platformTotals: {},
+            totalValue: 0
+        };
+        
+        let charts = {
+            platform: null,
+            account: null
+        };
+        
+        let currentChartType = 'pie';
+        
+        window.addEventListener('load', () => {
+            syncData();
+        });
+        
+        function switchPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            
+            document.getElementById(page).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        async function syncData() {
+            const btn = document.querySelector('.sync-btn');
+            const icon = btn.querySelector('.sync-icon');
+            
+            btn.classList.add('syncing');
+            icon.innerHTML = '<div class="spinner"></div>';
+            
+            try {
+                const response = await fetch(SHEET_URL);
+                const data = await response.json();
+                
+                if (data.error) throw new Error(data.error);
+                
+                // Preserve pendingChanges when syncing
+                const pendingChanges = appData.pendingChanges || [];
+                
+                appData = data;
+                appData.lastUpdate = new Date().toLocaleString();
+                appData.pendingChanges = pendingChanges;
+                appData.platformTotals = appData.platformTotals || {};
+                appData.totalValue = appData.totalValue || 0;
+                
+                renderDashboard();
+                renderSheet();
+                showNotification('Data synced successfully!', 'success');
+                
+                document.getElementById('lastSync').textContent = appData.lastUpdate;
+                
+            } catch (error) {
+                showNotification('Sync failed: ' + error.message, 'error');
+            } finally {
+                btn.classList.remove('syncing');
+                icon.innerHTML = '🔄';
+            }
+        }
+        
+        function renderDashboard() {
+            calculateMetrics();
+            renderCharts();
+        }
+        
+        function calculateMetrics() {
+            let totalValue = 0;
+            let platformTotals = {};
+            let taxAdvantaged = 0;
+            let liquidAssets = 0;
+            
+            appData.platforms.forEach(p => platformTotals[p] = 0);
+            
+            appData.rows.forEach(row => {
+                if (row.accountType === 'TOTAL') return;
+                
+                appData.platforms.forEach((platform, idx) => {
+                    const value = parseFloat(row.values[idx] || 0);
+                    platformTotals[platform] += value;
+                    totalValue += value;
+                });
+                
+                const rowTotal = row.values.reduce((sum, val) => sum + parseFloat(val || 0), 0);
+                
+                if (['TFSA', 'RRSP', 'FHSA'].includes(row.accountType)) {
+                    taxAdvantaged += rowTotal;
+                } else if (['CASH', 'MARGIN'].includes(row.accountType)) {
+                    liquidAssets += rowTotal;
+                }
+            });
+            
+            let largestPlatform = '';
+            let largestAmount = 0;
+            Object.entries(platformTotals).forEach(([platform, amount]) => {
+                if (amount > largestAmount) {
+                    largestAmount = amount;
+                    largestPlatform = platform;
+                }
+            });
+            
+            document.getElementById('totalValue').textContent = '$' + totalValue.toLocaleString();
+            document.getElementById('platformCount').textContent = `${appData.platforms.length} platforms`;
+            document.getElementById('largestPlatform').textContent = largestPlatform;
+            document.getElementById('largestAmount').textContent = '$' + largestAmount.toLocaleString() + ` (${((largestAmount/totalValue)*100).toFixed(1)}%)`;
+            document.getElementById('taxAdvantaged').textContent = '$' + taxAdvantaged.toLocaleString();
+            document.getElementById('taxPercentage').textContent = `${((taxAdvantaged/totalValue)*100).toFixed(1)}%`;
+            document.getElementById('liquidAssets').textContent = '$' + liquidAssets.toLocaleString();
+            document.getElementById('liquidPercentage').textContent = `${((liquidAssets/totalValue)*100).toFixed(1)}%`;
+            
+            appData.platformTotals = platformTotals;
+            appData.totalValue = totalValue;
+        }
+        
+        function renderCharts() {
+            renderPlatformChart();
+            renderAccountChart();
+        }
+        
+        function renderPlatformChart() {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+            
+            if (charts.platform) {
+                charts.platform.destroy();
+            }
+            
+            const labels = Object.keys(appData.platformTotals);
+            const values = Object.values(appData.platformTotals);
+            const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a'];
+            
+            charts.platform = new Chart(ctx, {
+                type: currentChartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y || context.parsed;
+                                    const total = appData.totalValue;
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${context.label}: $${value.toLocaleString()} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderAccountChart() {
+            const ctx = document.getElementById('accountChart').getContext('2d');
+            
+            if (charts.account) {
+                charts.account.destroy();
+            }
+            
+            const accountData = appData.rows
+                .filter(row => row.accountType !== 'TOTAL')
+                .map(row => ({
+                    account: row.accountType,
+                    total: row.values.reduce((sum, val) => sum + parseFloat(val || 0), 0)
+                }));
+            
+            charts.account = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: accountData.map(d => d.account),
+                    datasets: [{
+                        label: 'Account Value',
+                        data: accountData.map(d => d.total),
+                        backgroundColor: '#667eea',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Value: $${context.parsed.y.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function switchChart(type) {
+            currentChartType = type;
+            document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderPlatformChart();
+        }
+        
+        function renderSheet() {
+            renderTableHeader();
+            renderTableBody();
+        }
+        
+        function renderTableHeader() {
+            const thead = document.getElementById('tableHead');
+            thead.innerHTML = `
+                <tr>
+                    <th>Account Type</th>
+                    ${appData.platforms.map(p => `<th>${p}</th>`).join('')}
+                    <th>Last Updated</th>
+                    <th>Total</th>
+                    <th>%</th>
+                </tr>
+            `;
+        }
+        
+        function renderTableBody() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            appData.rows.forEach((row, rowIdx) => {
+                const tr = document.createElement('tr');
+                
+                if (row.accountType === 'TOTAL') {
+                    tr.className = 'total-row';
+                }
+                
+                const tdType = document.createElement('td');
+                tdType.textContent = row.accountType;
+                if (row.accountType !== 'TOTAL') {
+                    tdType.className = 'editable';
+                    tdType.onclick = () => editCell(rowIdx, -1, 'accountType');
+                }
+                tr.appendChild(tdType);
+                
+                row.values.forEach((value, valIdx) => {
+                    const td = document.createElement('td');
+                    td.textContent = ' '+ parseFloat(value || 0).toLocaleString();
+                    
+                    if (row.accountType !== 'TOTAL') {
+                        td.className = 'editable';
+                        td.onclick = () => editCell(rowIdx, valIdx, 'value');
+                        
+                        if (row.lastUpdated) {
+                            const updateTime = new Date(row.lastUpdated);
+                            const now = new Date();
+                            const hoursDiff = (now - updateTime) / (1000 * 60 * 60);
+                            
+                            if (hoursDiff < 24) {
+                                td.classList.add('recent-update');
+                            }
+                        }
+                        
+                        td.addEventListener('mouseenter', showTooltip);
+                        td.addEventListener('mouseleave', hideTooltip);
+                        td.setAttribute('data-timestamp', row.lastUpdated || 'Not updated');
+                    }
+                    
+                    tr.appendChild(td);
+                });
+                
+                const tdUpdated = document.createElement('td');
+                tdUpdated.innerHTML = row.lastUpdated 
+                    ? `<div class="timestamp-indicator">${formatTimestamp(row.lastUpdated)}</div>` 
+                    : '-';
+                tr.appendChild(tdUpdated);
+                
+                const tdTotal = document.createElement('td');
+                const total = row.values.reduce((sum, val) => sum + parseFloat(val || 0), 0);
+                tdTotal.textContent = ' '+ total.toLocaleString();
+                tr.appendChild(tdTotal);
+                
+                const tdPercent = document.createElement('td');
+                if (row.accountType !== 'TOTAL' && appData.totalValue > 0) {
+                    const percent = ((total / appData.totalValue) * 100).toFixed(1);
+                    tdPercent.innerHTML = `<span style="color: var(--primary); font-weight: 600;">${percent}%</span>`;
+                } else {
+                    tdPercent.textContent = '-';
+                }
+                tr.appendChild(tdPercent);
+                
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            
+            return date.toLocaleDateString();
+        }
+        
+        function editCell(rowIdx, valIdx, type) {
+            const row = appData.rows[rowIdx];
+            const tbody = document.getElementById('tableBody');
+            const tr = tbody.children[rowIdx];
+            const td = type === 'accountType' ? tr.children[0] : tr.children[valIdx + 1];
+            
+            const currentValue = type === 'accountType' 
+                ? row.accountType 
+                : row.values[valIdx];
+            
+            td.classList.add('editing');
+            td.innerHTML = `<input type="${type === 'accountType' ? 'text' : 'number'}" 
+                                   class="cell-input" 
+                                   value="${currentValue}" 
+                                   id="editInput">`;
+            
+            const input = document.getElementById('editInput');
+            input.focus();
+            input.select();
+            
+            input.onblur = () => saveCell(rowIdx, valIdx, type, input.value, td);
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    saveCell(rowIdx, valIdx, type, input.value, td);
+                } else if (e.key === 'Escape') {
+                    renderSheet();
+                }
+            };
+        }
+        
+        function saveCell(rowIdx, valIdx, type, newValue, td) {
+            const row = appData.rows[rowIdx];
+            
+            if (type === 'accountType') {
+                row.accountType = newValue;
+            } else {
+                row.values[valIdx] = parseFloat(newValue) || 0;
+            }
+            
+            row.lastUpdated = new Date().toISOString();
+            
+            // Ensure pendingChanges exists
+            if (!appData.pendingChanges) {
+                appData.pendingChanges = [];
+            }
+            
+            appData.pendingChanges.push({
+                rowIdx,
+                valIdx,
+                type,
+                value: newValue,
+                timestamp: row.lastUpdated
+            });
+            
+            renderSheet();
+            renderDashboard();
+            showNotification('Cell updated. Click "Save All" to sync to Google Sheets.', 'success');
+        }
+        
+        async function saveChanges() {
+            // Ensure pendingChanges exists
+            if (!appData.pendingChanges || appData.pendingChanges.length === 0) {
+                showNotification('No changes to save', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(SHEET_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'updateCells',
+                        data: appData.rows
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    appData.pendingChanges = [];
+                    showNotification(`Saved ${result.updatedCells} cells to Google Sheets!`, 'success');
+                    syncData();
+                } else {
+                    throw new Error(result.error);
+                }
+                
+            } catch (error) {
+                showNotification('Save failed: ' + error.message, 'error');
+            }
+        }
+        
+        function addRow() {
+            document.getElementById('addRowModal').classList.add('show');
+        }
+        
+        function confirmAddRow() {
+            const accountType = document.getElementById('newAccountType').value.trim();
+            
+            if (!accountType) {
+                showNotification('Please enter an account type', 'error');
+                return;
+            }
+            
+            const newRow = {
+                accountType: accountType.toUpperCase(),
+                values: [
+                    parseFloat(document.getElementById('newWealthsimple').value) || 0,
+                    parseFloat(document.getElementById('newQuestrade').value) || 0,
+                    parseFloat(document.getElementById('newWebull').value) || 0,
+                    parseFloat(document.getElementById('newMoomoo').value) || 0
+                ],
+                lastUpdated: new Date().toISOString()
+            };
+            
+            const totalIdx = appData.rows.findIndex(r => r.accountType === 'TOTAL');
+            if (totalIdx > -1) {
+                appData.rows.splice(totalIdx, 0, newRow);
+            } else {
+                appData.rows.push(newRow);
+            }
+            
+            renderSheet();
+            renderDashboard();
+            closeModal('addRowModal');
+            showNotification('Row added! Remember to click "Save All".', 'success');
+            
+            document.getElementById('newAccountType').value = '';
+            document.getElementById('newWealthsimple').value = '0';
+            document.getElementById('newQuestrade').value = '0';
+            document.getElementById('newWebull').value = '0';
+            document.getElementById('newMoomoo').value = '0';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+        
+        function exportCSV() {
+            const headers = ['Account Type', ...appData.platforms, 'Last Updated', 'Total', '%'];
+            const rows = appData.rows.map(row => {
+                const total = row.values.reduce((sum, val) => sum + parseFloat(val || 0), 0);
+                const percent = appData.totalValue > 0 
+                    ? ((total / appData.totalValue) * 100).toFixed(1) 
+                    : '0';
+                
+                return [
+                    row.accountType,
+                    ...row.values,
+                    row.lastUpdated || '',
+                    total,
+                    percent + '%'
+                ];
+            });
+            
+            const csv = [headers, ...rows]
+                .map(row => row.map(cell => `"${cell}"`).join(','))
+                .join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `investment-portfolio-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            
+            showNotification('CSV exported successfully!', 'success');
+        }
+        
+        function importCSV() {
+            document.getElementById('csvFileInput').click();
+        }
+        
+        function handleCSVImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            Papa.parse(file, {
+                complete: function(results) {
+                    try {
+                        const data = results.data;
+                        const dataRows = data.slice(1).filter(row => row[0] && row[0] !== 'TOTAL');
+                        
+                        dataRows.forEach(row => {
+                            const accountType = row[0];
+                            const existingRowIdx = appData.rows.findIndex(r => r.accountType === accountType && r.accountType !== 'TOTAL');
+                            
+                            const values = appData.platforms.map((_, idx) => parseFloat(row[idx + 1]) || 0);
+                            const timestamp = row[appData.platforms.length + 1] || new Date().toISOString();
+                            
+                            if (existingRowIdx > -1) {
+                                appData.rows[existingRowIdx].values = values;
+                                appData.rows[existingRowIdx].lastUpdated = timestamp;
+                            } else {
+                                const totalIdx = appData.rows.findIndex(r => r.accountType === 'TOTAL');
+                                const newRow = {
+                                    accountType,
+                                    values,
+                                    lastUpdated: timestamp
+                                };
+                                
+                                if (totalIdx > -1) {
+                                    appData.rows.splice(totalIdx, 0, newRow);
+                                } else {
+                                    appData.rows.push(newRow);
+                                }
+                            }
+                        });
+                        
+                        renderSheet();
+                        renderDashboard();
+                        showNotification('CSV imported successfully! Click "Save All" to sync.', 'success');
+                        
+                    } catch (error) {
+                        showNotification('Import failed: ' + error.message, 'error');
+                    }
+                },
+                error: function(error) {
+                    showNotification('Failed to parse CSV: ' + error.message, 'error');
+                }
+            });
+            
+            event.target.value = '';
+        }
+        
+        function showTooltip(e) {
+            const tooltip = document.getElementById('tooltip');
+            const timestamp = e.target.getAttribute('data-timestamp');
+            
+            if (timestamp) {
+                tooltip.textContent = `Last updated: ${formatTimestamp(timestamp)}`;
+                tooltip.classList.add('show');
+                updateTooltipPosition(e);
+            }
+        }
+        
+        function hideTooltip() {
+            document.getElementById('tooltip').classList.remove('show');
+        }
+        
+        function updateTooltipPosition(e) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.left = e.pageX + 'px';
+            tooltip.style.top = (e.pageY - 50) + 'px';
+        }
+        
+        document.addEventListener('mousemove', (e) => {
+            if (e.target.hasAttribute('data-timestamp')) {
+                updateTooltipPosition(e);
+            }
+        });
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-icon">${type === 'success' ? '✓' : '✕'}</div>
+                <div class="notification-text">${message}</div>
+            `;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
